@@ -1,19 +1,11 @@
-```python
 import pandas as pd
 import torch
 import torch.nn as nn
 import numpy as np
-import matplotlib.pyplot as plt
 
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from PIL import Image
-
-SEED = 42
-BATCH_SIZE = 32
-EPOCHS = 5
-LABELS = ["cat", "dog"]
-DATA_ROOT = Path("data")
 
 
 def build_label_mapping(
@@ -27,8 +19,8 @@ def build_label_mapping(
 ]:
 
     label_to_index = {
-        "cat": 0,
-        "dog": 1
+        label: idx
+        for idx, label in enumerate(LABELS)
     }
 
     labelled = frame.copy()
@@ -43,6 +35,7 @@ def build_label_mapping(
     ).reset_index(drop=True)
 
     train_size = int(len(labelled) * 0.7)
+
     val_size = int(len(labelled) * 0.15)
 
     train_df = labelled.iloc[:train_size]
@@ -70,7 +63,10 @@ def image_to_tensor(path: Path) -> torch.Tensor:
 
     image = image.resize((64, 64))
 
-    image_array = np.array(image).astype(np.float32)
+    image_array = np.array(
+        image,
+        dtype=np.float32
+    )
 
     image_array = image_array / 255.0
 
@@ -95,7 +91,9 @@ class CatsDogsDataset(Dataset):
         data_root: Path
     ):
 
-        self.frame = frame.reset_index(drop=True)
+        self.frame = frame.reset_index(
+            drop=True
+        )
 
         self.data_root = data_root
 
@@ -107,9 +105,10 @@ class CatsDogsDataset(Dataset):
 
         row = self.frame.iloc[index]
 
-        image_path = self.data_root / row[
-            "filepath"
-        ]
+        image_path = (
+            self.data_root /
+            row["filepath"]
+        )
 
         image_tensor = image_to_tensor(
             image_path
@@ -121,9 +120,6 @@ class CatsDogsDataset(Dataset):
         )
 
         return image_tensor, label_tensor
-
-
-train_loader_generator = torch.Generator().manual_seed(SEED)
 
 
 def build_dataloaders(
@@ -324,12 +320,15 @@ def train_one_epoch(
     model.train()
 
     total_loss = 0.0
+
     total_correct = 0
+
     total_examples = 0
 
     for images, labels in loader:
 
         images = images.to(device)
+
         labels = labels.to(device)
 
         optimizer.zero_grad()
@@ -352,7 +351,9 @@ def train_one_epoch(
 
         batch_size = images.size(0)
 
-        total_loss += loss.item() * batch_size
+        total_loss += (
+            loss.item() * batch_size
+        )
 
         total_correct += (
             predictions == labels
@@ -360,11 +361,18 @@ def train_one_epoch(
 
         total_examples += batch_size
 
-    average_loss = total_loss / total_examples
+    average_loss = (
+        total_loss / total_examples
+    )
 
-    average_accuracy = total_correct / total_examples
+    average_accuracy = (
+        total_correct / total_examples
+    )
 
-    return average_loss, average_accuracy
+    return (
+        average_loss,
+        average_accuracy
+    )
 
 
 def evaluate(
@@ -377,7 +385,9 @@ def evaluate(
     model.eval()
 
     total_loss = 0.0
+
     total_correct = 0
+
     total_examples = 0
 
     with torch.no_grad():
@@ -385,6 +395,7 @@ def evaluate(
         for images, labels in loader:
 
             images = images.to(device)
+
             labels = labels.to(device)
 
             logits = model(images)
@@ -401,7 +412,9 @@ def evaluate(
 
             batch_size = images.size(0)
 
-            total_loss += loss.item() * batch_size
+            total_loss += (
+                loss.item() * batch_size
+            )
 
             total_correct += (
                 predictions == labels
@@ -409,11 +422,18 @@ def evaluate(
 
             total_examples += batch_size
 
-    average_loss = total_loss / total_examples
+    average_loss = (
+        total_loss / total_examples
+    )
 
-    average_accuracy = total_correct / total_examples
+    average_accuracy = (
+        total_correct / total_examples
+    )
 
-    return average_loss, average_accuracy
+    return (
+        average_loss,
+        average_accuracy
+    )
 
 
 def run_training_experiment(
